@@ -1,35 +1,59 @@
-import TransactionsRepository from "../repositories/TransactionsRepository";
+import { getCustomRepository, getRepository } from "typeorm";
+
+import AppError from "../errors/AppError";
+
 import Transaction from "../models/Transaction";
+import Category from "../models/Category";
+
+import TransactionRepository from "../repositories/TransactionsRepository";
 
 interface Request {
   title: string;
-  value: number;
   type: "income" | "outcome";
+  value: number;
+  category: string;
 }
 
 class CreateTransactionService {
-  private transactionsRepository: TransactionsRepository;
+  public async execute({
+    title,
+    type,
+    value,
+    category,
+  }: Request): Promise<Transaction> {
+    const transactionsRepository = getCustomRepository(TransactionRepository);
+    const categoriesRepository = getRepository(Category);
 
-  constructor(transactionsRepository: TransactionsRepository) {
-    this.transactionsRepository = transactionsRepository;
-  }
-
-  public execute({ title, value, type }: Request): Transaction {
     if (!["income", "outcome"].includes(type)) {
       throw new Error("Invalid balace type");
     }
 
-    const { total } = this.transactionsRepository.getBalance();
+    const { total } = await transactionsRepository.getBalance();
 
     if (type === "outcome" && total < value) {
-      throw new Error("Invalid balace");
+      throw new AppError("You do not have enough balance");
     }
 
-    const transaction = this.transactionsRepository.create({
-      title,
-      value,
-      type,
+    let transactionCategory = await categoriesRepository.findOne({
+      where: { title: category },
     });
+
+    if (!transactionCategory) {
+      transactionCategory = categoriesRepository.create({
+        title: category,
+      });
+
+      await categoriesRepository.save(transactionCategory);
+    }
+
+    const transaction = transactionsRepository.create({
+      title,
+      type,
+      value,
+      category: transactionCategory,
+    });
+
+    await transactionsRepository.save(transaction);
 
     return transaction;
   }
