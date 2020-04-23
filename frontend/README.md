@@ -1,7 +1,7 @@
 <h1 align="center">
     <img alt="GoStack" src="https://ik.imagekit.io/hwyksvj4iv/React_TS_fELADlTGE.svg" width="300" />
     <br />
-    Go Finances
+    GoFinances
 </h1>
 
 ## 🚀 Tecnologias:
